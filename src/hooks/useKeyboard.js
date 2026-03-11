@@ -32,7 +32,7 @@ export function useKeyboard(keymap) {
   // (React 19 strict mode flags this as a render-time side effect).
   useEffect(() => {
     keymapRef.current = keymap
-  })
+  }, [keymap])
 
   useEffect(() => {
     function handleKeyDown(event) {

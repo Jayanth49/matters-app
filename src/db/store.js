@@ -1,5 +1,10 @@
 import Dexie from 'dexie'
 
+// ── Input validation limits ─────────────────────────────────────
+const MAX_TITLE_LENGTH = 200
+const MAX_ICON_LENGTH = 30
+const MAX_TAG_LENGTH = 100
+
 // ── Database singleton (module-level — instantiated ONCE) ───────
 export const db = new Dexie('MattersDB')
 
@@ -66,11 +71,11 @@ export async function createMatter({ title, color = '#6366f1', icon = 'brain' })
     throw new Error('Matter title is required and must be a non-empty string.')
   }
 
-  const safeTitle = title.trim().slice(0, 200)
+  const safeTitle = title.trim().slice(0, MAX_TITLE_LENGTH)
   const safeColor = typeof color === 'string' && /^#[0-9A-Fa-f]{6}$/.test(color)
     ? color
     : '#6366f1'
-  const safeIcon = typeof icon === 'string' ? icon.trim().slice(0, 30) : 'brain'
+  const safeIcon = typeof icon === 'string' ? icon.trim().slice(0, MAX_ICON_LENGTH) : 'brain'
 
   const id = await db.matters.add({
     title: safeTitle,
@@ -136,7 +141,7 @@ export async function createNode({
 
   const safeContent = typeof content === 'string' ? content : ''
   const safeTags = Array.isArray(tags)
-    ? tags.filter((t) => typeof t === 'string').map((t) => t.trim().slice(0, 100))
+    ? tags.filter((t) => typeof t === 'string').map((t) => t.trim().slice(0, MAX_TAG_LENGTH))
     : []
   const safeOrder = typeof order === 'number' && Number.isFinite(order) ? order : 0
 

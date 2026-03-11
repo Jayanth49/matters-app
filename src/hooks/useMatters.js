@@ -86,7 +86,7 @@ export function useEdges(nodeIds) {
   // Update the ref inside an effect to avoid setting ref.current during render.
   useEffect(() => {
     idsRef.current = nodeIds
-  })
+  }, [nodeIds])
 
   const edges = useLiveQuery(
     () => {

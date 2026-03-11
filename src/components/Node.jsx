@@ -25,14 +25,13 @@ function formatTimestamp(ts) {
 function isSafeUrl(url) {
   if (!url) return false
   try {
-    const trimmed = url.replace(/[\s\0]+/g, '').toLowerCase()
-    if (/^(https?:|mailto:|#|\/)/i.test(trimmed)) return true
-    // Block any scheme that is not explicitly allowed
-    if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) return false
-    // Relative URLs are fine
-    return true
+    // Attempt to parse as an absolute URL to reliably check the protocol.
+    const parsed = new URL(url, window.location.href)
+    const protocol = parsed.protocol.toLowerCase()
+    return protocol === 'http:' || protocol === 'https:' || protocol === 'mailto:'
   } catch {
-    return false
+    // If URL parsing fails, only allow relative paths (no colon before first slash).
+    return !/^[a-z][a-z0-9+.-]*:/i.test(url.replace(/[\s\0]+/g, ''))
   }
 }
 
