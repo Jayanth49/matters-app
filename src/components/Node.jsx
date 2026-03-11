@@ -19,6 +19,23 @@ function formatTimestamp(ts) {
 }
 
 /**
+ * Returns true if the URL uses a safe protocol (http, https, mailto).
+ * Blocks javascript:, vbscript:, data:, and other dangerous schemes.
+ */
+function isSafeUrl(url) {
+  if (!url) return false
+  try {
+    // Attempt to parse as an absolute URL to reliably check the protocol.
+    const parsed = new URL(url, window.location.href)
+    const protocol = parsed.protocol.toLowerCase()
+    return protocol === 'http:' || protocol === 'https:' || protocol === 'mailto:'
+  } catch {
+    // If URL parsing fails, only allow relative paths (no colon before first slash).
+    return !/^[a-z][a-z0-9+.-]*:/i.test(url.replace(/[\s\0]+/g, ''))
+  }
+}
+
+/**
  * Custom markdown components for dark-theme rendering.
  */
 const mdComponents = {
@@ -31,7 +48,14 @@ const mdComponents = {
   ul: (props) => <ul className="list-disc list-inside text-sm text-white/70 mb-2 space-y-0.5" {...props} />,
   ol: (props) => <ol className="list-decimal list-inside text-sm text-white/70 mb-2 space-y-0.5" {...props} />,
   li: (props) => <li className="text-sm text-white/70" {...props} />,
-  a: (props) => <a className="text-blue-400 underline underline-offset-2 hover:text-blue-300" {...props} />,
+  a: ({ href, ...rest }) => (
+    <a
+      href={isSafeUrl(href) ? href : undefined}
+      rel="noopener noreferrer"
+      className="text-blue-400 underline underline-offset-2 hover:text-blue-300"
+      {...rest}
+    />
+  ),
   blockquote: (props) => (
     <blockquote
       className="border-l-2 border-white/20 pl-3 my-2 text-sm text-white/50 italic"

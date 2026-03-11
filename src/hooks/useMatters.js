@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/store'
 
@@ -82,7 +82,11 @@ export function useEdges(nodeIds) {
   // Keep the latest nodeIds in a ref so the querier closure
   // always reads the current value without needing it as a dep.
   const idsRef = useRef(nodeIds)
-  idsRef.current = nodeIds
+
+  // Update the ref inside an effect to avoid setting ref.current during render.
+  useEffect(() => {
+    idsRef.current = nodeIds
+  }, [nodeIds])
 
   const edges = useLiveQuery(
     () => {

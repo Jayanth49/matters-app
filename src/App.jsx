@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence } from 'framer-motion'
 import {
   Brain, BookOpen, Lightbulb, Rocket,
   Code2, Palette, Music, FlaskConical,
@@ -96,29 +96,29 @@ export default function App() {
     setActiveMatterId(id)
   }, [newTitle, newColor, newIcon])
 
-  const handlePaletteNavigate = useCallback((matterId, nodeId) => {
+  const handlePaletteNavigate = useCallback((matterId) => {
     setActiveMatterId(matterId)
-    // TODO: scroll to nodeId within Thread (thread handles via its own state)
   }, [])
 
   const handleJumpTo = useCallback((nodeId) => {
-    // Scroll the node into view — Thread handles via data-node-id
+    // Validate nodeId is a finite number before using in a DOM selector
+    // to prevent CSS selector injection via crafted values.
+    if (typeof nodeId !== 'number' || !Number.isFinite(nodeId)) return
     const el = document.querySelector(`[data-node-id="${nodeId}"]`)
     el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
   }, [])
 
   // ── Auto-select first matter on load ────────────────────────
-  // FIXED: moved from render body → useEffect.
-  // Calling setState during render is a React anti-pattern that
-  // causes double-invocation in StrictMode (React 19). The brief
-  // flash of activeMatterId=null plus matters=[] (before Dexie
-  // resolves) could cascade into child components seeing empty
-  // data and issuing destructive writes or clearing UI state.
+  // Auto-select first matter on initial load.
+  // Using a ref to track if auto-selection has been attempted,
+  // avoiding setState inside an effect that depends on state it sets.
+  const hasAutoSelected = useRef(false)
   useEffect(() => {
-    if (!isLoading && matters.length > 0 && activeMatterId == null) {
+    if (!isLoading && matters.length > 0 && !hasAutoSelected.current) {
+      hasAutoSelected.current = true
       setActiveMatterId(matters[0].id)
     }
-  }, [isLoading, matters, activeMatterId])
+  }, [isLoading, matters])
 
   // ── Render ──────────────────────────────────────────────────
   return (
