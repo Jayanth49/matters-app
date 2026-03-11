@@ -28,7 +28,7 @@ db.version(2).stores({
   nodes: '++id, matterId, *tags, order, createdAt',
   // edges: unchanged
   edges: '++id, sourceId, targetId, [sourceId+targetId]',
-}).upgrade((_tx) => {
+}).upgrade(() => {
   // No data migration needed — schema indexes are identical.
   // This upgrade block exists so Dexie acknowledges the version
   // bump and doesn't skip the open handshake.
@@ -56,15 +56,26 @@ db.open().catch((err) => {
 
 /**
  * Create a new Matter (topic/thread).
+ * Inputs are validated and sanitized before storage.
  *
  * @param {{ title: string, color?: string, icon?: string }} data
  * @returns {Promise<number>} the new matter's id
  */
 export async function createMatter({ title, color = '#6366f1', icon = 'brain' }) {
+  if (typeof title !== 'string' || !title.trim()) {
+    throw new Error('Matter title is required and must be a non-empty string.')
+  }
+
+  const safeTitle = title.trim().slice(0, 200)
+  const safeColor = typeof color === 'string' && /^#[0-9A-Fa-f]{6}$/.test(color)
+    ? color
+    : '#6366f1'
+  const safeIcon = typeof icon === 'string' ? icon.trim().slice(0, 30) : 'brain'
+
   const id = await db.matters.add({
-    title,
-    color,
-    icon,
+    title: safeTitle,
+    color: safeColor,
+    icon: safeIcon,
     createdAt: new Date(),
   })
   return id
@@ -99,6 +110,7 @@ export async function deleteMatter(matterId) {
 /**
  * Create a new Node inside a matter.
  * If `parentId` is provided, an edge is also created.
+ * Inputs are validated before storage.
  *
  * @param {{
  *   matterId: number,
@@ -118,15 +130,25 @@ export async function createNode({
   isBranch = false,
   parentId = null,
 }) {
+  if (typeof matterId !== 'number' || !Number.isFinite(matterId)) {
+    throw new Error('matterId must be a finite number.')
+  }
+
+  const safeContent = typeof content === 'string' ? content : ''
+  const safeTags = Array.isArray(tags)
+    ? tags.filter((t) => typeof t === 'string').map((t) => t.trim().slice(0, 100))
+    : []
+  const safeOrder = typeof order === 'number' && Number.isFinite(order) ? order : 0
+
   const now = new Date()
 
   const nodeId = await db.transaction('rw', db.nodes, db.edges, async () => {
     const id = await db.nodes.add({
       matterId,
-      content,
-      tags,
-      order,
-      isBranch,
+      content: safeContent,
+      tags: safeTags,
+      order: safeOrder,
+      isBranch: Boolean(isBranch),
       createdAt: now,
       updatedAt: now,
     })
@@ -148,13 +170,23 @@ export async function createNode({
 
 /**
  * Update a node's content/tags.
+ * Only whitelisted fields can be updated to prevent arbitrary
+ * field overwrites (e.g. overwriting `id` or `matterId`).
  *
  * @param {number} nodeId
  * @param {{ content?: string, tags?: string[], isBranch?: boolean }} changes
  */
+const ALLOWED_NODE_UPDATES = new Set(['content', 'tags', 'isBranch'])
+
 export async function updateNode(nodeId, changes) {
+  const sanitized = {}
+  for (const key of Object.keys(changes)) {
+    if (ALLOWED_NODE_UPDATES.has(key)) {
+      sanitized[key] = changes[key]
+    }
+  }
   await db.nodes.update(nodeId, {
-    ...changes,
+    ...sanitized,
     updatedAt: new Date(),
   })
 }

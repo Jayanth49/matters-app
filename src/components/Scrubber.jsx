@@ -42,7 +42,6 @@ function truncate(text, maxLen = 40) {
 export default function Scrubber({ nodes, onJumpTo, viewportRatio }) {
   const trackRef = useRef(null)
   const [hoveredId, setHoveredId] = useState(null)
-  const [tooltipPos, setTooltipPos] = useState({ x: 0 })
 
   // ── Compute proportional x-positions based on timestamps ───
   const positioned = useMemo(() => {
@@ -67,9 +66,7 @@ export default function Scrubber({ nodes, onJumpTo, viewportRatio }) {
   const playheadConstraints = useRef(null)
 
   // ── Handle dot hover for tooltip positioning ───────────────
-  const handleDotHover = useCallback((e, nodeId) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    setTooltipPos({ x: rect.left + rect.width / 2 })
+  const handleDotHover = useCallback((_e, nodeId) => {
     setHoveredId(nodeId)
   }, [])
 
@@ -103,7 +100,6 @@ export default function Scrubber({ nodes, onJumpTo, viewportRatio }) {
         {positioned.map((node) => {
           const isBranch = node.isBranch === true
           const isHov = hoveredId === node.id
-          const leftPct = `calc(${PADDING_X}px + ${node.ratio * 100}% * (1 - ${(PADDING_X * 2)}px / 100%))`
 
           return (
             <button

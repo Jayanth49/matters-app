@@ -27,7 +27,12 @@ export function useKeyboard(keymap) {
   // Keep a stable ref so the listener always sees the latest handlers
   // without needing to re-register on every render.
   const keymapRef = useRef(keymap)
-  keymapRef.current = keymap
+
+  // Update the ref in an effect to avoid setting ref.current during render
+  // (React 19 strict mode flags this as a render-time side effect).
+  useEffect(() => {
+    keymapRef.current = keymap
+  })
 
   useEffect(() => {
     function handleKeyDown(event) {
